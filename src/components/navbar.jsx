@@ -1,53 +1,78 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from 'react-router-dom';
-import CartWidget from "./CartWidget";
+import { CartWidget } from "./CartWidget";
+import { getFirestore, collection, getDocs } from "firebase/firestore";
+import { NavLink } from "react-router-dom";
+
 
 const Navbar = () => {
   const [showCategories, setShowCategories] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const categoriesRef = useRef(null);
+
+  useEffect(() => {
+    const db = getFirestore();
+    const categoriasCollection = collection(db, "categorias");
+    getDocs(categoriasCollection)
+      .then((snapshot) => {
+        const categoriesData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setCategories(categoriesData);
+      })
+      .catch((error) => {
+        console.error("Error fetching categories:", error);
+      });
+  }, []);
+
+  const toggleCategories = () => {
+    setShowCategories(!showCategories);
+  };
 
   return (
     <nav className="bg-rose-500 py-4">
       <div className="container mx-auto flex justify-between items-center">
-        <div className="mr-20">
+        <div className="mr-20 bg-center">
           <Link to="/">
             <img src="/img/resizelogo.webp" alt="LogoDeYSC" />
           </Link>
         </div>
-        <div className="flex items-center justify-center flex-grow">
-          <img src="/src/assets/search-3076.svg" alt="Search" height={15} width={35} />
-          <form className="bg-white p-2 h-[20%] w-full rounded-lg">
-            <input type="text" />
-          </form>
-        </div>
-        <div className="ml-20 flex items-center justify-end">
-          <ul className="flex space-x-4 justify-end">
-            <li>
-              <button className="text-white text-xl" onClick={() => setShowCategories(!showCategories)}>Categorías</button>
-              {showCategories && (
-                <ul className="absolute bg-white text-xl w-[20%]">
-                <li>
-                      <button className="hover:underline">
-                        <Link to="/category/PortaSahumerios">Porta Sahumerios</Link>
-                      </button>
-                </li>
-                <li>
-                      <button className="hover:underline">
-                        <Link to="/category/Bandejas">Bandejas</Link>
-                      </button>
-                </li>
-                </ul>
-              )}
-            </li>
-            <li><button className="text-white text-xl"><Link to="/">Productos</Link></button></li>
-            <li><button className="text-white text-xl">Contacto</button></li>
-            <li>
+        <ul className="flex space-x-4 justify-end items-center w-full">
+          <li ref={categoriesRef}>
+            <button className="text-white text-xl" onClick={toggleCategories}>Categorías</button>
+            {showCategories && (
+              <ul className="absolute bg-white text-xl w-[20%] rounded-lg border border-gray-300">
+                {categories.map((categoria) => (
+                  <li key={categoria.id}>
+                    <button className="hover:underline block w-full">
+                      <Link
+                        to={`/category/${categoria.id}`}
+                        className="block px-4 py-2 text-gray-800 hover:bg-gray-200"
+                      >
+                        {categoria.nombre}
+                      </Link>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+          <li>
+            <Link to="/contacto" className="text-white text-xl">
+              Contacto
+            </Link>
+          </li>
+          <li>
+            <NavLink to="/cart">
               <CartWidget />
-            </li>
-          </ul>
-        </div>
+            </NavLink>
+          </li>
+        </ul>
       </div>
     </nav>
   );
-}
+};
 
 export default Navbar;
+

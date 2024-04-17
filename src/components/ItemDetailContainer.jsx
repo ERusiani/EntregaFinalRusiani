@@ -1,34 +1,49 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import MocksAsync from '../utils/MocksAsync.json';
+import { getFirestore, collection, query, where, getDocs } from "firebase/firestore";
+import { ItemDetail } from "./ItemDetail";
+import { ItemCount } from "./ItemCount";
 
-const ItemDetailContainer = () => {
+export const ItemDetailContainer = () => {
   const { id } = useParams();
-  const [producto, setProducto] = useState(null);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    setTimeout(() => {
-      const foundProducto = MocksAsync.productos.find(prod => prod.id === parseInt(id));
-      setProducto(foundProducto);
-      setLoading(false);
-    }, 2000); // Simulando carga de datos asincrónica
-  }, [id]);
 
-  if (loading) return <h1>Cargando...</h1>;
-  if (!producto) return <h1>Producto no encontrado</h1>;
+  
+  useEffect (()=>{
+    const db = getFirestore();
+
+    if(id){
+    const getProducts= query(collection(db, "productos"),where("id", "==", parseInt(id)))
+    getDocs(getProducts).then((snapshot)=>{
+    if (snapshot.size === 0){
+      console.log ("no hay categorias")
+    }
+    setProducts(snapshot.docs.map((doc)=> ({id: doc.id, ...doc.data()})))
+    setLoading(false)
+  })
+          } else {
+            const getProducts = collection(db, "productos")
+            getDocs(getProducts).then((snapshot)=>{
+              if (snapshot.size === 0){
+                console.log ("no hay productos")
+              }
+              setProducts(snapshot.docs.map((doc)=> ({id: doc.id, ...doc.data()})))
+              setLoading(false)
+            })
+            
+          }
+  }, [id])
+
+  if (loading) return <h1 className="text-black text-2xl mx-auto">Cargando...</h1>;
 
   return (
-    <div className="container mx-auto mt-8">
-      <div className="bg-gray-100 p-8 rounded-md shadow-md">
-        <img src={`/img/${producto.imagen}`} alt={producto.nombre} className="mx-auto mb-4" />
-        <h2 className="text-3xl font-bold mb-2">{producto.nombre}</h2>
-        <p className="text-lg text-gray-600 mb-4">{producto.descripcion}</p>
-        <p className="text-2xl font-semibold text-rose-500">${producto.precio}</p>
-      </div>
+    <div>
+      {products && products.map((item, index) => <ItemDetail key={index} item={item}/>)}
     </div>
   );
-}
+};
 
 export default ItemDetailContainer;
 
